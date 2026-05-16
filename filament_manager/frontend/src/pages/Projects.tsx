@@ -352,6 +352,7 @@ function PrintJobRow({ job, projectId }: { job: PrintJob; projectId: number }) {
       qc.invalidateQueries({ queryKey: ['projects', projectId] })
       qc.invalidateQueries({ queryKey: ['projects'] })
     },
+    onError: (err) => alert(err instanceof Error ? err.message : 'Failed to update test print flag'),
   })
 
   return (

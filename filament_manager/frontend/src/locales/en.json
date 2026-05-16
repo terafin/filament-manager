@@ -348,17 +348,21 @@
       "regionEU": "Europe",
       "regionCN": "China",
       "configureInExperiments": "Configure cloud source in the Cloud Config tab",
+      "notConnectedHint": "Not connected to Bambu Lab Cloud. Go to the Cloud Config tab to connect first.",
+      "selectDevice": "Select your printer",
+      "serial": "Serial"
+    },
     "filamentSync": {
       "title": "Filament Sync",
       "hint": "Keep your spool inventory in sync with the Bambu Lab filament library.",
       "requiresCloud": "Connect to Bambu Cloud first to enable sync.",
       "direction": "Sync direction",
-      "dir_pull": "Pull",
-      "dir_push": "Push",
-      "dir_bidirectional": "Both",
-      "dirHint_pull": "Bambu Cloud → local: import cloud spools, update local matches.",
-      "dirHint_push": "Local → Bambu Cloud: push your inventory to the cloud.",
-      "dirHint_bidirectional": "Both directions: pull from cloud, then push local spools.",
+      "dir_pull": "Pull only",
+      "dir_push": "Push only",
+      "dir_bidirectional": "Bidirectional",
+      "dirHint_pull": "Cloud → local: import Bambu spools, create or update local records.",
+      "dirHint_push": "Local → Cloud: push your inventory to the Bambu filament library.",
+      "dirHint_bidirectional": "Both: pull from cloud first, then push local spools up.",
       "linked": "{{n}} of {{total}} spools linked to Bambu Cloud",
       "lastSync": "Last sync: {{date}}",
       "pullNow": "Pull from Cloud",
@@ -366,10 +370,6 @@
       "op_pull": "Pull",
       "op_push": "Push",
       "result": "{{op}} complete — {{created}} created, {{updated}} updated, {{unchanged}} unchanged, {{errors}} errors"
-    },
-      "notConnectedHint": "Not connected to Bambu Lab Cloud. Go to the Cloud Config tab to connect first.",
-      "selectDevice": "Select your printer",
-      "serial": "Serial"
     },
     "ha": {
       "title": "Home Assistant",

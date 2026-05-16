@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.36.1
+
+- Fix: **Wrong AMS slot in filament usage suggestions** — Bambu's external-spool sentinel values (254/255) in `amsMapping2` were not filtered, causing the slot to be computed as `ams256_tray256` instead of being skipped; the phantom AMS unit also corrupted slot-index resolution for multi-AMS printers (issue #50 related)
+- Fix: **Energy tracking could break print state after a HA sensor failure** — if the Home Assistant energy sensor raised an exception at print start, the exception escaped the handler and left the printer untracked in memory, so the print-end event was also mishandled; the read is now wrapped in its own try/except
+- Fix: **Test-print toggle failure was silent** — if toggling the test-print flag on a project print failed (API error), the UI showed no feedback; the mutation now surfaces an error alert
+
 ## 0.36.0
 
 - New: **Bambu Lab Filament Sync** (Experimental) — synchronise your spool inventory with the Bambu Lab filament library; supports pull (cloud → local), push (local → cloud), and bidirectional modes; synced spools are shown with a cloud badge in the spool grid and table; configure in Settings → Cloud Config → Filament Sync

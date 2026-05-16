@@ -136,13 +136,19 @@ async def _on_print_end(
                 # Convert slicer filament index → physical slot_key via amsMapping2 (correct)
                 # Falls back to the legacy index-based method when amsMapping2 is absent.
                 primary_slot: str | None = None
+                ams_mapping2_covered = False
                 if slicer_idx < len(ams_mapping2):
                     m = ams_mapping2[slicer_idx]
                     if isinstance(m, dict):
-                        ams_unit = int(m.get("amsId", 0)) + 1
-                        tray_slot = int(m.get("slotId", 0)) + 1
-                        primary_slot = f"ams{ams_unit}_tray{tray_slot}"
-                if primary_slot is None:
+                        ams_mapping2_covered = True
+                        raw_ams_id = int(m.get("amsId", 0))
+                        raw_slot_id = int(m.get("slotId", 0))
+                        if raw_ams_id in (254, 255) or raw_slot_id in (254, 255):
+                            continue  # amsMapping2 says external spool — skip, don't guess
+                        primary_slot = f"ams{raw_ams_id + 1}_tray{raw_slot_id + 1}"
+                if not ams_mapping2_covered:
+                    # amsMapping2 absent or doesn't cover this index — fall back to physical
+                    # index heuristic (only correct when slicer maps filaments sequentially)
                     primary_slot = bambu_cloud_client._ams_index_to_slot_key(
                         slicer_idx, bambu_cloud_client.get_ams_unit_tray_counts(serial),
                     )
@@ -519,14 +525,17 @@ async def on_cloud_print_start(printer_id: int, subtask_name: str, serial: str, 
 
         # Snapshot energy sensor value at print start — stored in DB so it survives container restarts
         if printer.energy_sensor_entity_id:
-            from .ha_client import get_ha_state
-            energy_snapshot = await get_ha_state(printer.energy_sensor_entity_id)
-            if energy_snapshot is not None:
-                job.energy_start_kwh = energy_snapshot
-                db.commit()
-                log.info("Cloud: energy snapshot at start = %.4f kWh for job #%d", energy_snapshot, job.id)
-            else:
-                log.warning("Cloud: could not read energy sensor %s at print start", printer.energy_sensor_entity_id)
+            try:
+                from .ha_client import get_ha_state
+                energy_snapshot = await get_ha_state(printer.energy_sensor_entity_id)
+                if energy_snapshot is not None:
+                    job.energy_start_kwh = energy_snapshot
+                    db.commit()
+                    log.info("Cloud: energy snapshot at start = %.4f kWh for job #%d", energy_snapshot, job.id)
+                else:
+                    log.warning("Cloud: could not read energy sensor %s at print start", printer.energy_sensor_entity_id)
+            except Exception as exc:
+                log.warning("Cloud: energy sensor read failed at print start for job #%d: %s", job.id, exc)
 
         _state[printer_id] = {"stage": "printing", "job_id": job.id}
         log.info("Cloud: Created PrintJob #%d for %s", job.id, printer.name)

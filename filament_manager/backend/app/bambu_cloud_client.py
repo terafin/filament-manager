@@ -555,17 +555,24 @@ def _parse_ams_into_cache(serial: str, ams_raw: dict) -> None:
     unit_counts = dict(_ams_unit_tray_counts.get(serial, {}))
     changed = False
     for unit in ams_raw.get("ams", []):
-        ams_id = int(unit.get("id", 0)) + 1   # 1-based
+        raw_unit_id = int(unit.get("id", 0))
+        if raw_unit_id in (254, 255):
+            continue  # Bambu sentinel for external/virtual spool — not a real AMS unit
+        ams_id = raw_unit_id + 1  # 1-based
         trays_in_msg = unit.get("tray", [])
 
         # Track the highest tray id seen for this unit.  Use max() so incremental
         # updates (which may only report a single tray) don't shrink the count.
-        tray_ids_in_msg = {int(t.get("id", 0)) + 1 for t in trays_in_msg if "id" in t}
+        tray_ids_in_msg = {int(t.get("id", 0)) + 1 for t in trays_in_msg
+                           if "id" in t and int(t["id"]) not in (254, 255)}
         if tray_ids_in_msg:
             unit_counts[ams_id] = max(unit_counts.get(ams_id, 0), max(tray_ids_in_msg))
 
         for tray in trays_in_msg:
-            tray_id = int(tray.get("id", 0)) + 1  # 1-based
+            raw_tray_id = int(tray.get("id", 0))
+            if raw_tray_id in (254, 255):
+                continue  # external spool sentinel tray
+            tray_id = raw_tray_id + 1  # 1-based
             slot_key = f"ams{ams_id}_tray{tray_id}"
             slot = dict(existing.get(slot_key, {}))
 
@@ -782,10 +789,10 @@ def _filament_base() -> str:
 
 
 def _http_list_filaments(token: str, offset: int = 0, limit: int = 50) -> dict:
-    """GET /my/filament/v2 — returns { total, hits: [...] }."""
+    """GET /my/filament — returns { total, hits: [...] }."""
     headers = {"Authorization": f"Bearer {token}"}
     resp = requests.get(
-        f"{_filament_base()}/my/filament/v2",
+        f"{_filament_base()}/my/filament",
         params={"offset": offset, "limit": limit},
         headers=headers,
         timeout=20,
@@ -813,10 +820,10 @@ def _http_list_all_filaments(token: str) -> list[dict]:
 
 
 def _http_create_filament(token: str, body: dict) -> dict:
-    """POST /my/filament/v2 — create a new cloud spool. Returns created spool JSON."""
+    """POST /my/filament — create a new cloud spool. Returns created spool JSON."""
     headers = {"Authorization": f"Bearer {token}"}
     resp = requests.post(
-        f"{_filament_base()}/my/filament/v2",
+        f"{_filament_base()}/my/filament",
         json=body,
         headers=headers,
         timeout=20,
@@ -826,10 +833,10 @@ def _http_create_filament(token: str, body: dict) -> dict:
 
 
 def _http_update_filament(token: str, spool_id: str | int, body: dict) -> dict:
-    """PUT /my/filament/v2/:id — update an existing cloud spool."""
+    """PUT /my/filament/:id — update an existing cloud spool."""
     headers = {"Authorization": f"Bearer {token}"}
     resp = requests.put(
-        f"{_filament_base()}/my/filament/v2/{spool_id}",
+        f"{_filament_base()}/my/filament/{spool_id}",
         json=body,
         headers=headers,
         timeout=20,
@@ -839,13 +846,13 @@ def _http_update_filament(token: str, spool_id: str | int, body: dict) -> dict:
 
 
 def _http_delete_filaments(token: str, ids: list[int], rfids: list[str] | None = None) -> None:
-    """DELETE /my/filament/v2/batch — delete one or more cloud spools by id."""
+    """DELETE /my/filament/batch — delete one or more cloud spools by id."""
     headers = {"Authorization": f"Bearer {token}"}
     body: dict = {"ids": ids}
     if rfids:
         body["RFIDs"] = rfids
     resp = requests.delete(
-        f"{_filament_base()}/my/filament/v2/batch",
+        f"{_filament_base()}/my/filament/batch",
         json=body,
         headers=headers,
         timeout=20,
