@@ -307,10 +307,17 @@ async def lifespan(app: FastAPI):
             log.info("Migration: added user_preferences.bambu_filament_sync_enabled")
         if up_cols and "bambu_filament_sync_direction" not in up_cols:
             conn.execute(text(
-                "ALTER TABLE user_preferences ADD COLUMN bambu_filament_sync_direction TEXT NOT NULL DEFAULT 'pull'"
+                "ALTER TABLE user_preferences ADD COLUMN bambu_filament_sync_direction TEXT NOT NULL DEFAULT 'off'"
             ))
             conn.commit()
             log.info("Migration: added user_preferences.bambu_filament_sync_direction")
+        # Migrate: rows where enabled=0 had direction='pull' as the old default → set to 'off'
+        if up_cols and "bambu_filament_sync_direction" in up_cols:
+            conn.execute(text(
+                "UPDATE user_preferences SET bambu_filament_sync_direction = 'off' "
+                "WHERE bambu_filament_sync_enabled = 0 AND bambu_filament_sync_direction IN ('pull','push','bidirectional')"
+            ))
+            conn.commit()
         if up_cols and "bambu_filament_last_sync_at" not in up_cols:
             conn.execute(text(
                 "ALTER TABLE user_preferences ADD COLUMN bambu_filament_last_sync_at DATETIME"

@@ -29,18 +29,82 @@ export interface Spool {
   bambu_synced_at: string | null
 }
 
+export type SyncMode = 'off' | 'pull' | 'push' | 'bidirectional'
+
 export interface FilamentSyncStatus {
+  sync_mode: SyncMode
   enabled: boolean
-  direction: 'pull' | 'push' | 'bidirectional'
   last_sync_at: string | null
   total_spools: number
   linked_spools: number
 }
 
+export interface SyncMatchSuggestion {
+  local_id: number
+  local_summary: string
+  cloud_id: string
+  cloud_summary: string
+  cloud_color_hex: string
+  local_color_hex: string
+  confidence: number
+  match_reason: string
+  pre_checked: boolean
+}
+
+export interface SyncCloudOnly {
+  cloud_id: string
+  cloud_summary: string
+  filament_vendor: string
+  filament_type: string
+  filament_name: string
+  color_hex: string
+  initial_weight_g: number
+  current_weight_g: number
+}
+
+export interface SyncLocalOnly {
+  local_id: number
+  local_summary: string
+  color_hex: string
+}
+
+export interface SyncCloudDeleted {
+  local_id: number
+  local_summary: string
+  was_cloud_id: string
+}
+
+export interface FilamentSyncPlan {
+  already_linked_count: number
+  match_suggestions: SyncMatchSuggestion[]
+  cloud_only: SyncCloudOnly[]
+  local_only: SyncLocalOnly[]
+  cloud_deleted: SyncCloudDeleted[]
+}
+
+export interface ConfirmedMatch {
+  local_id: number
+  cloud_id: string
+}
+
+export interface DeletedAction {
+  local_id: number
+  action: 'archive' | 'keep' | 'delete'
+}
+
+export interface ApplySyncRequest {
+  confirmed_matches: ConfirmedMatch[]
+  import_from_cloud: string[]
+  push_to_cloud: number[]
+  deleted_actions: DeletedAction[]
+}
+
 export interface FilamentSyncResult {
-  created: number
-  updated: number
-  unchanged: number
+  matched: number
+  imported: number
+  pushed: number
+  archived: number
+  deleted: number
   errors: number
 }
 

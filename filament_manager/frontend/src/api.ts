@@ -15,7 +15,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 // ── Spools ───────────────────────────────────────────────────────────────────
-import type { Spool, PrintJob, PrinterConfig, PrinterStatus, DashboardStats, FilamentSubtype, Project, ProjectDetail, FilamentSyncStatus, FilamentSyncResult } from './types'
+import type { Spool, PrintJob, PrinterConfig, PrinterStatus, DashboardStats, FilamentSubtype, Project, ProjectDetail, FilamentSyncStatus, FilamentSyncPlan, FilamentSyncResult, ApplySyncRequest, SyncMode } from './types'
 
 export const api = {
   // Spools
@@ -219,12 +219,12 @@ export const api = {
 
   // Filament Sync
   getFilamentSyncStatus: () => request<FilamentSyncStatus>('filament-sync/status'),
-  patchFilamentSyncSettings: (data: { enabled: boolean; direction: string }) =>
+  patchFilamentSyncSettings: (data: { sync_mode: SyncMode }) =>
     request<FilamentSyncStatus>('filament-sync/settings', { method: 'PATCH', body: JSON.stringify(data) }),
-  filamentSyncPull: () =>
-    request<FilamentSyncResult>('filament-sync/pull', { method: 'POST' }),
-  filamentSyncPush: () =>
-    request<FilamentSyncResult>('filament-sync/push', { method: 'POST' }),
+  filamentSyncPreview: () =>
+    request<FilamentSyncPlan>('filament-sync/preview', { method: 'POST' }),
+  filamentSyncApply: (data: ApplySyncRequest) =>
+    request<FilamentSyncResult>('filament-sync/apply', { method: 'POST', body: JSON.stringify(data) }),
 
   // Data transfer
   exportData: () => fetch(`${BASE}/data/export`).then(r => r.blob()),

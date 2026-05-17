@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.37.0
+
+- New: **Bambu Filament Sync — complete overhaul**
+  - Sync mode setting replaces the old enabled/direction split: choose **Off**, **Bambu → FM**, **FM → Bambu**, or **Bidirectional** (Off is now the explicit default instead of an implicit disabled state)
+  - Two-phase **preview → review → apply** flow replaces the old fire-and-forget pull/push: clicking "Sync Now…" opens a review modal before any changes are made
+  - **Match-making with confidence scoring** — the backend compares material, brand, colour, and weight to suggest pairs; suggestions ≥ 80% confidence are pre-checked, lower-confidence ones are shown unchecked for manual review; one-to-one assignment ensures no spool is matched twice
+  - **Deletion handling** — spools whose Bambu record has been removed are surfaced in the modal with per-item choices: Archive (default), Keep (unlink only), or Delete
+  - Fixed: `filamentName` (Bambu's product name) was incorrectly stored as `color_name`; it is now stored in `notes` on import and never used as a colour label
+  - Fixed: push payload now always includes a non-empty `filamentName` safeguard to avoid cloud 400 errors (STUDIO-18117 equivalent)
+  - Fixed: the `enabled` flag was stored but never enforced; mode `off` now fully prevents sync operations
+
 ## 0.36.3
 
 - Fix: **N3S (AMS HT) slot tracking now works correctly** — the tray-index fallback used when `amsMapping2` is absent assumed all AMS indices are sequential starting from 0; N3S units use raw IDs 128–152 as their flat index (not `ams_id × 4 + slot_id`), so they were silently returning no slot; the fallback now resolves N3S indices directly to `ams{id+1}_tray1` and excludes N3S entries from the sequential offset walk for standard AMS units

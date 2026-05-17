@@ -289,8 +289,10 @@ class UserPreferences(Base):
     country_override        = Column(String,  nullable=True)   # ISO 3166-1 alpha-2, e.g. "DE"
     low_stock_threshold_pct = Column(Integer, nullable=False, default=20)  # 1–100
     # Bambu Filament Sync settings
+    # sync_mode: 'off' | 'pull' | 'push' | 'bidirectional'
+    # Stored in bambu_filament_sync_direction for DB compat; bambu_filament_sync_enabled is legacy.
     bambu_filament_sync_enabled   = Column(Boolean, nullable=False, default=False)
-    bambu_filament_sync_direction = Column(String,  nullable=False, default='pull')  # 'pull' | 'push' | 'bidirectional'
+    bambu_filament_sync_direction = Column(String,  nullable=False, default='off')
     bambu_filament_last_sync_at   = Column(DateTime, nullable=True)
 
 
