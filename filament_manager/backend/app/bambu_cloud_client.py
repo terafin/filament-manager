@@ -801,10 +801,10 @@ def _filament_base() -> str:
 
 
 def _http_list_filaments(token: str, offset: int = 0, limit: int = 50) -> dict:
-    """GET /my/filament — returns { total, hits: [...] }."""
+    """GET /my/filament/v2 — returns { total, hits: [...] }."""
     headers = {"Authorization": f"Bearer {token}"}
     resp = requests.get(
-        f"{_filament_base()}/my/filament",
+        f"{_filament_base()}/my/filament/v2",
         params={"offset": offset, "limit": limit},
         headers=headers,
         timeout=20,
@@ -832,10 +832,10 @@ def _http_list_all_filaments(token: str) -> list[dict]:
 
 
 def _http_create_filament(token: str, body: dict) -> dict:
-    """POST /my/filament — create a new cloud spool. Returns created spool JSON."""
+    """POST /my/filament/v2 — create a new cloud spool. Returns created spool JSON."""
     headers = {"Authorization": f"Bearer {token}"}
     resp = requests.post(
-        f"{_filament_base()}/my/filament",
+        f"{_filament_base()}/my/filament/v2",
         json=body,
         headers=headers,
         timeout=20,
@@ -845,11 +845,15 @@ def _http_create_filament(token: str, body: dict) -> dict:
 
 
 def _http_update_filament(token: str, spool_id: str | int, body: dict) -> dict:
-    """PUT /my/filament/:id — update an existing cloud spool."""
+    """PUT /my/filament/v2 — update an existing cloud spool.
+
+    The Bambu v2 API passes `id` in the request body rather than the URL path
+    (confirmed from BambuStudio wgtFilaManagerCloudClient.cpp: UpdateFilamentV2Req).
+    """
     headers = {"Authorization": f"Bearer {token}"}
     resp = requests.put(
-        f"{_filament_base()}/my/filament/{spool_id}",
-        json=body,
+        f"{_filament_base()}/my/filament/v2",
+        json={"id": int(spool_id), **body},
         headers=headers,
         timeout=20,
     )
@@ -858,13 +862,13 @@ def _http_update_filament(token: str, spool_id: str | int, body: dict) -> dict:
 
 
 def _http_delete_filaments(token: str, ids: list[int], rfids: list[str] | None = None) -> None:
-    """DELETE /my/filament/batch — delete one or more cloud spools by id."""
+    """DELETE /my/filament/v2/batch — delete one or more cloud spools by id."""
     headers = {"Authorization": f"Bearer {token}"}
     body: dict = {"ids": ids}
     if rfids:
         body["RFIDs"] = rfids
     resp = requests.delete(
-        f"{_filament_base()}/my/filament/batch",
+        f"{_filament_base()}/my/filament/v2/batch",
         json=body,
         headers=headers,
         timeout=20,

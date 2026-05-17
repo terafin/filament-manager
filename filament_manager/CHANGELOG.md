@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.37.1
+
+- Fix: **Bambu filament API — switch to v2 endpoints** — the filament list, create, update, and delete endpoints all 404'd because Bambu moved their filament API from `/my/filament` to `/my/filament/v2`; the update route also now passes `id` in the request body (not the URL path) as required by the v2 spec (`UpdateFilamentV2Req`)
+
 ## 0.37.0
 
 - New: **Bambu Filament Sync — complete overhaul**
