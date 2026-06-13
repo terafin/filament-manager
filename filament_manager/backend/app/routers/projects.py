@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from ..database import get_db
 from ..models import PrintJob, PrintUsage, Project, ProjectPrint, Spool
-from ..schemas import ProjectCreate, ProjectDetailOut, ProjectOut, ProjectUpdate, PrintJobOut
+from ..schemas import MaterialUsageItem, ProjectCreate, ProjectDetailOut, ProjectOut, ProjectUpdate, PrintJobOut
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -20,11 +20,20 @@ def _project_out(project: Project) -> ProjectOut:
     total_grams = sum(j.total_grams for j in jobs)
     nozzle_diameters = sorted({j.nozzle_diameter for j in jobs if j.nozzle_diameter})
     materials: list[str] = []
+    _usage_map: dict[tuple, float] = {}
     for j in jobs:
         for u in j.usages:
             if u.spool and u.spool.material and u.spool.material not in materials:
                 materials.append(u.spool.material)
+            if u.spool:
+                key = (u.spool.material or "", u.spool.color_name or "", u.spool.color_hex or "#888888")
+                _usage_map[key] = _usage_map.get(key, 0.0) + u.grams_used
     materials.sort()
+    material_usage = sorted(
+        [MaterialUsageItem(material=k[0], color_name=k[1], color_hex=k[2], grams=round(v, 1))
+         for k, v in _usage_map.items()],
+        key=lambda x: -x.grams,
+    )
     started_dates = [j.started_at for j in jobs if j.started_at]
     date_first = min(started_dates) if started_dates else None
     date_last = max(started_dates) if started_dates else None
@@ -57,6 +66,7 @@ def _project_out(project: Project) -> ProjectOut:
         total_energy_cost=total_energy_cost,
         nozzle_diameters=nozzle_diameters,
         materials=materials,
+        material_usage=material_usage,
         date_first=date_first,
         date_last=date_last,
         created_at=project.created_at,

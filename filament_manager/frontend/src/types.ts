@@ -175,6 +175,7 @@ export interface Project {
   total_energy_cost: number | null
   nozzle_diameters: string[]
   materials: string[]
+  material_usage: { material: string; color_name: string; color_hex: string; grams: number }[]
   date_first: string | null
   date_last: string | null
   created_at: string

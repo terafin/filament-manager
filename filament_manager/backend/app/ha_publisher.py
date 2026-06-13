@@ -20,9 +20,10 @@ from .models import PrintJob, Spool, UserPreferences
 log = logging.getLogger(__name__)
 
 _POLL_INTERVAL = 30    # seconds between periodic pushes
-_ENTITY_PENDING   = "sensor.filament_manager_pending_usages"
-_ENTITY_LOW_STOCK = "sensor.filament_manager_low_stock_spools"
-_ENTITY_UNMATCHED = "sensor.filament_manager_ams_unmatched"
+_ENTITY_PENDING    = "sensor.filament_manager_pending_usages"
+_ENTITY_LOW_STOCK  = "sensor.filament_manager_low_stock_spools"
+_ENTITY_UNMATCHED  = "sensor.filament_manager_ams_unmatched"
+_ENTITY_LAST_PRINT = "sensor.filament_manager_last_print"
 
 _trigger_event: asyncio.Event | None = None
 _event_loop: asyncio.AbstractEventLoop | None = None
@@ -123,6 +124,40 @@ def _compute(db) -> dict[str, tuple[int, dict]]:
             if not _tray_has_match(material, color_hex, spools):
                 unmatched_trays.append(f"{printer.name}:{slot_key} ({material})")
 
+    # ── last completed print ──────────────────────────────────────────────────
+    from .models import PrintUsage
+    last_job = (
+        db.query(PrintJob)
+        .filter(PrintJob.finished_at.isnot(None))
+        .options(joinedload(PrintJob.usages).joinedload(PrintUsage.spool))
+        .order_by(PrintJob.finished_at.desc())
+        .first()
+    )
+    if last_job:
+        job_grams = round(sum(u.grams_used for u in last_job.usages), 2)
+        job_materials = sorted({u.spool.material for u in last_job.usages if u.spool and u.spool.material})
+        last_print_state = (last_job.name or "")[:200] or "–"
+        last_print_attrs = {
+            "friendly_name": "Filament Manager: Last Print",
+            "icon": "mdi:printer-3d",
+            "printer": last_job.printer_name or "",
+            "started_at": last_job.started_at.isoformat() if last_job.started_at else None,
+            "finished_at": last_job.finished_at.isoformat() if last_job.finished_at else None,
+            "duration_seconds": last_job.duration_seconds,
+            "success": last_job.success,
+            "total_grams": job_grams,
+            "total_cost": round(last_job.total_cost, 4),
+            "energy_kwh": last_job.energy_kwh,
+            "url": last_job.url,
+            "materials": job_materials,
+        }
+    else:
+        last_print_state = "–"
+        last_print_attrs = {
+            "friendly_name": "Filament Manager: Last Print",
+            "icon": "mdi:printer-3d",
+        }
+
     return {
         _ENTITY_PENDING: (
             len(pending),
@@ -152,6 +187,7 @@ def _compute(db) -> dict[str, tuple[int, dict]]:
                 "trays": unmatched_trays,
             },
         ),
+        _ENTITY_LAST_PRINT: (last_print_state, last_print_attrs),
     }
 
 

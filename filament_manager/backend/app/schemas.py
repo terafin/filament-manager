@@ -111,6 +111,13 @@ class ProjectUpdate(BaseModel):
     url: str | None = None
 
 
+class MaterialUsageItem(BaseModel):
+    material: str
+    color_name: str
+    color_hex: str
+    grams: float
+
+
 class ProjectOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -125,6 +132,7 @@ class ProjectOut(BaseModel):
     total_energy_cost: float | None
     nozzle_diameters: list[str]
     materials: list[str]
+    material_usage: list[MaterialUsageItem] = []
     date_first: datetime | None
     date_last: datetime | None
     created_at: datetime

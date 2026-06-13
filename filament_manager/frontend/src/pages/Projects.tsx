@@ -272,8 +272,17 @@ function ProjectCard({
             </span>
           )}
           {durationH && <span>{durationH}h</span>}
-          {project.materials.length > 0 && (
-            <span className="hidden lg:inline">{project.materials.join(', ')}</span>
+          {project.material_usage.length > 0 && (
+            <span className="hidden lg:flex items-center gap-2 flex-wrap">
+              {project.material_usage.map((m, i) => (
+                <span key={i} className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full shrink-0 ring-1 ring-white/10"
+                        style={{ background: m.color_hex }} />
+                  <span className="text-gray-400">{m.material}</span>
+                  <span className="text-gray-500">{m.grams.toFixed(0)}g</span>
+                </span>
+              ))}
+            </span>
           )}
         </div>
 

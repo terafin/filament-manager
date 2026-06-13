@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.39.0
+
+- Feature: **Filament breakdown in Projects** — each project card now shows a color-coded material breakdown (color dot, material name, grams) instead of a plain material list; the breakdown is sorted by grams descending and aggregates usage across all prints in the project
+- Feature: **HA sensor: Last completed print** — a new sensor `sensor.filament_manager_last_print` is pushed to Home Assistant automatically; its state is the name of the most recently finished print job; attributes include `printer`, `started_at`, `finished_at`, `duration_seconds`, `success`, `total_grams`, `total_cost`, `energy_kwh`, `url`, and `materials`; updates on every print completion like the other sensors
+
 ## 0.38.1
 
 - Enhancement: **Extra color fields for multicolor filaments** — spools and filament catalog entries now have three optional extra color fields (Color 2, Color 3, Color 4); set the hex value for each additional stripe or blend color; extra colors appear as additional color dots next to the primary color in the spool table and tile view; the fields are purely for inventory purposes and have no effect on AMS auto-matching or any other logic; catalog → spool auto-fill and propagation include the new fields; spool CSV export/import and full JSON backup/restore include all three fields
