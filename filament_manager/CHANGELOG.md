@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.39.6
+
+- Feature: **Printer status HA sensors** — one `sensor.filament_manager_printer_<name>_status` entity is created per active printer; state is `running`, `idle`, `paused`, `finished`, `failed`, or `offline`; attributes include `mc_percent`, `mc_remaining_time`, `subtask_name`, and raw `gcode_state`; updates every 30 seconds and immediately on print start/finish
+
 ## 0.39.5
 
 - Security: **python-multipart updated to 0.0.31** — resolves four CVEs (quadratic-time querystring parsing DoS, negative Content-Length memory exhaustion, semicolon parameter smuggling, RFC 2231 Content-Disposition parameter smuggling)

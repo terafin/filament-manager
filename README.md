@@ -2,7 +2,7 @@
 
 A Home Assistant add-on for tracking 3D printer filament inventory, monitoring print history, and calculating material costs. Integrates natively with Bambu Lab printers via **Bambu Lab Cloud (MQTT)**.
 
-![Version](https://img.shields.io/badge/version-0.39.5-blue) ![Platform](https://img.shields.io/badge/platform-Home%20Assistant-teal)
+![Version](https://img.shields.io/badge/version-0.39.6-blue) ![Platform](https://img.shields.io/badge/platform-Home%20Assistant-teal)
 
 ---
 
@@ -25,7 +25,7 @@ Spools, print history, and all other data are unaffected.
 - **Live print status** — active print jobs show real-time stage, progress, remaining time, and active tray from Bambu Cloud MQTT
 - **Spool inventory** — full CRUD for filament spools with brand, material, subtype, color, article number, weight, cost, purchase location, storage location, and last drying date
 - **Filament catalog** — manage a master list of filament products (brand, material, subtype, color, article number, hex); CSV import and export (semicolon or comma delimited, Excel UTF-8 BOM supported); selecting a catalog entry auto-fills the spool form; an optional checkbox propagates catalog changes to all spools sharing the same article number
-- **Home Assistant sensor entities** — six sensors pushed automatically via the HA States API: pending filament usage confirmations, low-stock spool count, unmatched AMS trays, last completed print (name + printer + grams + cost + materials as attributes), total spools in inventory, and consumed (empty) spools — all with per-material breakdowns as attributes; sensors update on print completion, spool change, and every 30 seconds; no HA configuration required
+- **Home Assistant sensor entities** — sensors pushed automatically via the HA States API: pending filament usage confirmations, low-stock spool count, unmatched AMS trays, last completed print (name + printer + grams + cost + materials as attributes), total spools in inventory, consumed (empty) spools (both with per-material breakdowns), and a live printer status sensor per configured printer (running / idle / paused / finished / failed / offline) with progress %, remaining time, and current file as attributes; sensors update on print completion, spool change, and every 30 seconds; no HA configuration required
 - **Print description & model URL** — descriptions show below the print name in history; each print can have a URL (MakerWorld, Printables, etc.) shown as a clickable link icon
 - **Energy tracking** — configure a cumulative kWh HA sensor (e.g. Shelly plug) and an optional electricity price sensor per printer; energy consumed (kWh) and cost (€) are recorded per print and aggregated on projects; standby energy (idle between prints) is tracked separately per printer with a reset button in Settings
 - **Print Projects** — group print jobs into named projects; each project aggregates print count, total time, total filament, total cost, energy (kWh), energy cost, materials used, and nozzle diameters; the project card shows a color-coded filament breakdown (color dot + material + grams) sorted by grams; per-print cost breakdown (material, energy, total) shown in the expanded project view; prints can be individually marked as test prints with the flask icon; assign prints from the project page or from the print form; optional URL field shown as a clickable link icon; full export/import support

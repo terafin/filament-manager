@@ -137,6 +137,41 @@ def _compute(db) -> dict[str, tuple[int, dict]]:
             if not _tray_has_match(material, color_hex, spools):
                 unmatched_trays.append(f"{printer.name}:{slot_key} ({material})")
 
+    # ── printer status sensors (one per active printer with a serial) ────────
+    import re
+
+    def _entity_name(printer_name: str) -> str:
+        return re.sub(r'[^a-z0-9]+', '_', printer_name.lower().strip()).strip('_')
+
+    _STATE_MAP = {
+        "RUNNING": "running",
+        "IDLE":    "idle",
+        "PAUSE":   "paused",
+        "FINISH":  "finished",
+        "FAILED":  "failed",
+    }
+
+    printer_sensors: dict[str, tuple] = {}
+    for printer in printers:
+        if not printer.bambu_serial:
+            continue
+        cache = bambu_cloud_client.get_printer_cloud_status(printer.bambu_serial)
+        raw_state = (cache.get("gcode_state") or "").upper()
+        state = _STATE_MAP.get(raw_state, "offline")
+        entity_id = f"sensor.filament_manager_printer_{_entity_name(printer.name)}_status"
+        printer_sensors[entity_id] = (
+            state,
+            {
+                "friendly_name": f"Filament Manager: {printer.name}",
+                "icon": "mdi:printer-3d-nozzle",
+                "printer": printer.name,
+                "mc_percent": cache.get("mc_percent"),
+                "mc_remaining_time": cache.get("mc_remaining_time"),
+                "subtask_name": cache.get("subtask_name"),
+                "gcode_state": raw_state or None,
+            },
+        )
+
     # ── last completed print ──────────────────────────────────────────────────
     from .models import PrintUsage
     last_job = (
@@ -219,6 +254,7 @@ def _compute(db) -> dict[str, tuple[int, dict]]:
                 "by_material": _count_by_material(empty_spools),
             },
         ),
+        **printer_sensors,
     }
 
 
