@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.39.7
+
+- Enhancement: **Low stock sensor includes remaining grams** — each spool name in the `spools` attribute of `sensor.filament_manager_low_stock_spools` now shows the approximate remaining weight, e.g. `"Jayo PETG Black (149g)"` (issue #56)
+
 ## 0.39.6
 
 - Feature: **Printer status HA sensors** — one `sensor.filament_manager_printer_<name>_status` entity is created per active printer; state is `running`, `idle`, `paused`, `finished`, `failed`, or `offline`; attributes include `mc_percent`, `mc_remaining_time`, `subtask_name`, and raw `gcode_state`; updates every 30 seconds and immediately on print start/finish

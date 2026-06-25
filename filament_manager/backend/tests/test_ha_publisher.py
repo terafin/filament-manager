@@ -29,6 +29,18 @@ def _make_spool(session, *, material: str, weight_g: float, archived: bool = Fal
     return s
 
 
+class TestLowStockSensor:
+    def test_spools_list_includes_grams(self, session):
+        s = Spool(brand="Jayo", material="PETG", color_name="Black",
+                  color_hex="#000000", initial_weight_g=1000.0, current_weight_g=148.7,
+                  archived=False)
+        session.add(s); session.commit()
+
+        _, attrs = _compute(session)["sensor.filament_manager_low_stock_spools"]
+
+        assert attrs["spools"] == ["Jayo PETG Black (149g)"]
+
+
 class TestSpoolInventorySensor:
     def test_total_counts_only_non_archived(self, session):
         _make_spool(session, material="PLA",  weight_g=1000)

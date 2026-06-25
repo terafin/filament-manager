@@ -83,7 +83,7 @@ def _compute(db) -> dict[str, tuple[int, dict]]:
         s for s in spools
         if s.current_weight_g > 0 and 0 < s.remaining_pct < threshold
     ]
-    low_names = [f"{s.brand} {s.material} {s.color_name}".strip() for s in low]
+    low_names = [f"{s.brand} {s.material} {s.color_name} ({round(s.current_weight_g)}g)".strip() for s in low]
 
     # ── spool inventory + consumed ───────────────────────────────────────────
     def _count_by_material(spool_list: list) -> dict[str, int]:
