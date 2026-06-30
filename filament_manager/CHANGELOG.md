@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.39.9
+
+- Fix: **Bambu authenticator-app (TOTP) 2FA login** — the two-factor verification endpoint was POSTed to the wrong host (`https://api.bambulab.com/api/sign-in/tfa`), which returns `404 Not Found`; corrected to `https://bambulab.com/api/sign-in/tfa` (the TFA endpoint lives on the bare `bambulab.com` domain, not the `api.` subdomain). Verified against the upstream greghesp/pybambu `BAMBU_URL[TFA_LOGIN]`. Resolves "Verification failed: 400: … 404 Client Error … /api/sign-in/tfa" on authenticator-app accounts.
+
+## 0.39.8
+
+- Feature: **Bambu Cloud two-factor authentication (2FA) login** — adds support for accounts protected by an emailed verification code (`verifyCode`) and by an authenticator-app TOTP code (`tfa`); the TOTP path completes at Bambu's web sign-in endpoint and reads the access token from the `token` cookie (with a JSON `accessToken`/`token` fallback), sending the `bambu_network_agent` / `X-BBL-*` client headers required to avoid a 403
+
 ## 0.39.7
 
 - Enhancement: **Low stock sensor includes remaining grams** — each spool name in the `spools` attribute of `sensor.filament_manager_low_stock_spools` now shows the approximate remaining weight, e.g. `"Jayo PETG Black (149g)"` (issue #56)

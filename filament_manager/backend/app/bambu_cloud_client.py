@@ -52,11 +52,13 @@ _2FA_TIMEOUT_SECONDS = 600  # 10 minutes
 
 _AUTH_BASE = "https://api.bambulab.com/v1/user-service/user"
 # Authenticator-app (TOTP) 2FA completes at the web sign-in endpoint, not the
-# user-service login path. It enforces the bambu_network_agent header set
-# (without them the request 403s) and returns the token as a `token` cookie
-# (with a JSON accessToken/token fallback). Contract per the bambu-lab-cloud-api
-# library's BambuAuthenticator._handle_mfa.
-_TFA_URL = "https://api.bambulab.com/api/sign-in/tfa"
+# user-service login path. NOTE the host is bambulab.com — NOT api.bambulab.com:
+# the TFA endpoint only exists on the bare domain; api.bambulab.com/api/sign-in/tfa
+# 404s. (Verified against greghesp/pybambu BAMBU_URL[TFA_LOGIN].) It enforces the
+# bambu_network_agent header set (without them the request 403s) and returns the
+# token as a `token` cookie (with a JSON accessToken/token fallback). Contract per
+# the bambu-lab-cloud-api library's BambuAuthenticator._handle_mfa.
+_TFA_URL = "https://bambulab.com/api/sign-in/tfa"
 _TFA_HEADERS = {
     "User-Agent": "bambu_network_agent/01.09.05.01",
     "X-BBL-Client-Name": "OrcaSlicer",
