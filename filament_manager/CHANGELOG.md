@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.39.8
+
+- Feature: **Authenticator-app (TOTP) 2FA login** — accounts using a TOTP authenticator app (Google Authenticator, Authy, etc.) for Bambu Cloud 2FA can now log in; previously these accounts failed with "Cannot create token" because only email-code 2FA was supported; email-code accounts are unaffected — huge thanks to **[@terafin](https://github.com/terafin)** for the contribution! (PR #58)
+- Fix: **Bambu Cloud filament sync endpoint** — Bambu moved the filament library API from `user-service` to `design-user-service`; the filament sync feature now uses the correct URL and returns data again instead of HTTP 404 — thanks to **[@terafin](https://github.com/terafin)** for tracking this down and submitting the fix! (PR #59)
+
 ## 0.39.7
 
 - Enhancement: **Low stock sensor includes remaining grams** — each spool name in the `spools` attribute of `sensor.filament_manager_low_stock_spools` now shows the approximate remaining weight, e.g. `"Jayo PETG Black (149g)"` (issue #56)
