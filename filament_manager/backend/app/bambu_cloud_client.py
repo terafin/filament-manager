@@ -1116,7 +1116,7 @@ async def verify_2fa(code: str) -> None:
         raise HTTPException(400, f"Verification failed: {exc}")
 
     if not token:
-        err = "No access token returned"
+        err = resp.get("message", "No access token returned") if mode != "tfa" else "No access token returned"
         _status["status"] = "error"
         _status["error"] = err
         raise HTTPException(400, f"Login failed: {err}")
