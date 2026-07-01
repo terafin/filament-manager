@@ -1,10 +1,11 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Spool, BrandSpoolWeight, FilamentSubtype, FilamentMaterial, SpoolAudit
 from ..schemas import SpoolCreate, SpoolOut, SpoolUpdate, SpoolAuditEntry
+from .filament_sync import _sync_spool_weight_to_cloud
 
 
 def _resolve_spool_weight(brand: str | None, db: Session) -> float:
@@ -53,7 +54,7 @@ def get_spool(spool_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{spool_id}", response_model=SpoolOut)
-def update_spool(spool_id: int, body: SpoolUpdate, db: Session = Depends(get_db)):
+def update_spool(spool_id: int, body: SpoolUpdate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     spool = db.get(Spool, spool_id)
     if not spool:
         raise HTTPException(404, "Spool not found")
@@ -76,6 +77,8 @@ def update_spool(spool_id: int, body: SpoolUpdate, db: Session = Depends(get_db)
         ))
     db.commit()
     db.refresh(spool)
+    if "current_weight_g" in updates and spool.bambu_spool_id:
+        background_tasks.add_task(_sync_spool_weight_to_cloud, spool.id)
     from .. import ha_publisher
     ha_publisher.trigger()
     return spool
@@ -95,7 +98,7 @@ def get_spool_audit(spool_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{spool_id}/audit/{entry_id}/correct", response_model=SpoolAuditEntry, status_code=201)
-def correct_spool_audit(spool_id: int, entry_id: int, db: Session = Depends(get_db)):
+def correct_spool_audit(spool_id: int, entry_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Create a reversal correction entry for an audit row and update spool weight accordingly."""
     spool = db.get(Spool, spool_id)
     if not spool:
@@ -126,6 +129,8 @@ def correct_spool_audit(spool_id: int, entry_id: int, db: Session = Depends(get_
     db.add(correction)
     db.commit()
     db.refresh(correction)
+    if spool.bambu_spool_id:
+        background_tasks.add_task(_sync_spool_weight_to_cloud, spool.id)
     return correction
 
 

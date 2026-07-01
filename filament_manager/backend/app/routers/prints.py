@@ -1,13 +1,14 @@
 from datetime import datetime, date as date_t
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy import or_, func, select as sa_select
 from sqlalchemy.orm import Session, joinedload
 
 from ..database import get_db
 from ..models import PrintJob, PrintUsage, Spool, SpoolAudit, Project
 from ..schemas import PrintJobCreate, PrintJobOut, PrintJobUpdate
+from .filament_sync import _sync_spool_weight_to_cloud
 
 router = APIRouter(prefix="/api/prints", tags=["prints"])
 
@@ -114,7 +115,7 @@ def list_prints(
 
 
 @router.post("", response_model=PrintJobOut, status_code=201)
-def create_print(body: PrintJobCreate, db: Session = Depends(get_db)):
+def create_print(body: PrintJobCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     if body.fm_project_id and not db.get(Project, body.fm_project_id):
         raise HTTPException(404, f"Project {body.fm_project_id} not found")
     job = PrintJob(
@@ -157,6 +158,8 @@ def create_print(body: PrintJobCreate, db: Session = Depends(get_db)):
                 print_job_id=job.id,
                 print_name=job.name,
             ))
+            if spool.bambu_spool_id:
+                background_tasks.add_task(_sync_spool_weight_to_cloud, spool.id)
 
     db.commit()
     return _load_job(db, job.id)
@@ -168,7 +171,7 @@ def get_print(job_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{job_id}", response_model=PrintJobOut)
-def update_print(job_id: int, body: PrintJobUpdate, db: Session = Depends(get_db)):
+def update_print(job_id: int, body: PrintJobUpdate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     job = db.get(PrintJob, job_id)
     if not job:
         raise HTTPException(404, "Print job not found")
@@ -180,6 +183,7 @@ def update_print(job_id: int, body: PrintJobUpdate, db: Session = Depends(get_db
     for field, value in updates.items():
         setattr(job, field, value)
 
+    synced_spool_ids: set[int] = set()
     if body.usages is not None:
         # Revert old spool weights (only when deduct_weight is on)
         for old in job.usages:
@@ -200,6 +204,8 @@ def update_print(job_id: int, body: PrintJobUpdate, db: Session = Depends(get_db
                         print_job_id=job.id,
                         print_name=job.name,
                     ))
+                    if spool.bambu_spool_id:
+                        synced_spool_ids.add(spool.id)
             db.delete(old)
         db.flush()
 
@@ -227,19 +233,24 @@ def update_print(job_id: int, body: PrintJobUpdate, db: Session = Depends(get_db
                     print_job_id=job.id,
                     print_name=job.name,
                 ))
+                if spool.bambu_spool_id:
+                    synced_spool_ids.add(spool.id)
         # Always clear suggested_usages when usages are explicitly confirmed
         job.suggested_usages = None
 
     db.commit()
+    for spool_id in synced_spool_ids:
+        background_tasks.add_task(_sync_spool_weight_to_cloud, spool_id)
     return _load_job(db, job.id)
 
 
 @router.delete("/{job_id}", status_code=204)
-def delete_print(job_id: int, db: Session = Depends(get_db)):
+def delete_print(job_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     job = db.get(PrintJob, job_id)
     if not job:
         raise HTTPException(404, "Print job not found")
     # Revert spool weights and write audit entries before job deletion
+    synced_spool_ids: set[int] = set()
     for usage in job.usages:
         if usage.spool_id:
             spool = db.get(Spool, usage.spool_id)
@@ -258,5 +269,9 @@ def delete_print(job_id: int, db: Session = Depends(get_db)):
                     print_job_id=None,
                     print_name=job.name,
                 ))
+                if spool.bambu_spool_id:
+                    synced_spool_ids.add(spool.id)
     db.delete(job)
     db.commit()
+    for spool_id in synced_spool_ids:
+        background_tasks.add_task(_sync_spool_weight_to_cloud, spool_id)

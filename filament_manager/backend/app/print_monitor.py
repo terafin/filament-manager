@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from .database import SessionLocal
 from .models import PrinterConfig, PrintJob, PrintUsage, Spool, SpoolAudit
+from .routers.filament_sync import _sync_spool_weight_to_cloud
 
 log = logging.getLogger(__name__)
 
@@ -414,12 +415,15 @@ async def _background_fetch_suggestions(
                          "Log Usage banner will still appear for manual entry",
                          job_id, attempt + 1)
 
+            deducted_spool_ids: list[int] = []
             if suggestions and auto_deduct:
-                _apply_suggested_usages(job, db)
+                deducted_spool_ids = _apply_suggested_usages(job, db)
                 log.info("background auto-deduct: applied %d usages for job #%d",
                          suggestions_count, job.id)
 
             db.commit()
+            for spool_id in deducted_spool_ids:
+                asyncio.create_task(_sync_spool_weight_to_cloud(spool_id))
             ha_publisher.trigger()
             return  # done — no need for the second attempt
 
@@ -430,17 +434,19 @@ async def _background_fetch_suggestions(
             db.close()
 
 
-def _apply_suggested_usages(job: PrintJob, db: Session) -> None:
+def _apply_suggested_usages(job: PrintJob, db: Session) -> list[int]:
     """Write PrintUsage rows and update spool weights from job.suggested_usages.
 
     Skips slots that already have a usage row (idempotent).
     Each suggestion entry may carry a spool_id (set by HA delta path) or
     ams_slot only (cloud path — looks up by slot assignment).
+    Returns the list of spool IDs whose weight was changed.
     """
     if not job.suggested_usages:
-        return
+        return []
     # Dedup by (ams_slot, spool_id) — swap scenario produces two entries for the same slot
     existing = {(u.ams_slot, u.spool_id) for u in job.usages}
+    deducted_spool_ids: list[int] = []
     for s in job.suggested_usages:
         slot_key = s.get("ams_slot", "")
         spool_id = s.get("spool_id")
@@ -481,7 +487,10 @@ def _apply_suggested_usages(job: PrintJob, db: Session) -> None:
         ))
         log.info("auto-deduct: %.1fg from spool #%d (%s) for job #%d",
                  grams, spool.id, slot_key, job.id)
+        if spool.bambu_spool_id:
+            deducted_spool_ids.append(spool.id)
     job.suggested_usages = None  # mark as confirmed so the UI yellow icon goes away
+    return deducted_spool_ids
 
 
 async def on_printer_disconnect(printer_id: int) -> None:

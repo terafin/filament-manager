@@ -983,6 +983,19 @@ async def update_filament(spool_id: str | int, body: dict) -> dict:
         raise HTTPException(502, f"Bambu filament update failed: {exc}") from exc
 
 
+async def delete_filaments(ids: list[int]) -> None:
+    """Async: delete cloud spools by id list."""
+    creds = _load_credentials()
+    if not creds or not creds.get("token"):
+        raise HTTPException(503, "Not connected to Bambu Cloud")
+    token = creds["token"]
+    try:
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, lambda: _http_delete_filaments(token, ids))
+    except requests.HTTPError as exc:
+        raise HTTPException(502, f"Bambu filament delete failed: {exc}") from exc
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 async def startup() -> None:

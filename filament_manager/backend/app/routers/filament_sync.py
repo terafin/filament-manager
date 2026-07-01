@@ -26,13 +26,45 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from ..database import get_db
+from ..database import get_db, SessionLocal
 from ..models import Spool, UserPreferences
 from .. import bambu_cloud_client
 
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/filament-sync", tags=["filament-sync"])
+
+
+async def _sync_spool_weight_to_cloud(spool_id: int) -> None:
+    """Push a weight change for a linked spool to Bambu Cloud, or delete if empty.
+
+    Fire-and-forget: opens its own session (reads committed weight), swallows all
+    exceptions so a cloud outage never breaks the local response.
+    """
+    db = SessionLocal()
+    try:
+        spool = db.query(Spool).filter(Spool.id == spool_id).first()
+        if not spool or not spool.bambu_spool_id:
+            return
+        cloud_id = spool.bambu_spool_id
+        if spool.current_weight_g == 0:
+            await bambu_cloud_client.delete_filaments([int(cloud_id)])
+            spool.bambu_spool_id = None
+            spool.bambu_synced_at = None
+            db.commit()
+            log.info("cloud sync: deleted cloud spool %s (local spool %d empty)", cloud_id, spool_id)
+        else:
+            await bambu_cloud_client.update_filament(
+                cloud_id, {"netWeight": int(spool.current_weight_g)}
+            )
+            spool.bambu_synced_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            db.commit()
+            log.info("cloud sync: updated netWeight=%d for spool %d (cloud %s)",
+                     int(spool.current_weight_g), spool_id, cloud_id)
+    except Exception as exc:
+        log.warning("cloud sync: failed for spool %d: %s", spool_id, exc)
+    finally:
+        db.close()
 
 SYNC_MODES = ("off", "pull", "push", "bidirectional")
 

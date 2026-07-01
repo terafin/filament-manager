@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.39.11
+
+- Feature: **Automatic Bambu Cloud FM sync on weight change** — when a spool is linked to Bambu Cloud FM (`bambu_spool_id` set), any local weight change (manual edit, print usage logging, auto-deduct, audit correction) is automatically pushed to Bambu Cloud in the background; if the spool reaches 0 g it is deleted from Bambu Cloud (no archive concept there) and the local link is cleared; all paths covered: spool edit, audit correction, create/update/delete print with usage, and auto-deduct on print finish
+
 ## 0.39.10
 
 - Fix: **Filament sync push — wrong field mapping for material type** — the color name was being sent as `filamentName` (which Bambu displays as "Material Type" in their app), causing the material type to show as e.g. "Jade White" instead of "Bambu PLA"; now sends `Brand Material` (e.g. "Bambu PLA") as `filamentName` and moves the color name into the `note` field
